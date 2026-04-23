@@ -1,0 +1,22 @@
+{
+    "model": "Decision Tree",
+    "time": 6.245938777923584,
+    "metrics": {
+        "accuracy": 0.9998830573486762,
+        "precision": 0.9998897342595655,
+        "recall": 0.9998346105077457,
+        "f1": 0.9998621716238939,
+        "time": 6.245938777923584
+    },
+    "params": {
+        "model_type": "Decision Tree",
+        "test_size": 0.2,
+        "random_state": 42
+    },
+    "confusion_matrix": {
+        "TN": 24615,
+        "FP": 2,
+        "FN": 3,
+        "TP": 18136
+    }
+}

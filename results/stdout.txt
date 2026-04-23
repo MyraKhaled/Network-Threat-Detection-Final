@@ -1,0 +1,101 @@
+
+╔══════════════════════════════════════════════════════════════╗
+║        TRAINING REPORT — XGBoost                           ║
+╚══════════════════════════════════════════════════════════════╝
+
+  Date            : 2026-04-23 19:26:19
+  Model           : XGBoost
+  Dataset         : data/uploaded.csv
+
+──────────────────────────────────────────────────────────────
+  PARAMETERS USED
+──────────────────────────────────────────────────────────────
+{
+    "model_type": "XGBoost",
+    "test_size": 0.2,
+    "random_state": 42,
+    "xgb_n_estimators": 200,
+    "xgb_max_depth": 12,
+    "xgb_learning_rate": 0.1,
+    "xgb_alpha": 1.0,
+    "xgb_gamma": 0.2,
+    "xgb_subsample": 1.0,
+    "xgb_reg_lambda": 1.0
+}
+
+──────────────────────────────────────────────────────────────
+  DATASET SUMMARY
+──────────────────────────────────────────────────────────────
+  Total rows      : 225,745
+  Total columns   : 79
+  Features (ML)   : 69
+  Train rows      : 178,489
+  Test rows       : 44,623
+  BENIGN (train)  : 76,077
+  ATTACK (train)  : 102,412
+  scale_pos_weight: 0.7429
+
+──────────────────────────────────────────────────────────────
+  METRICS
+──────────────────────────────────────────────────────────────
+  Accuracy        : 0.9999  (99.99%)
+  Precision       : 1.0000  (100.00%)
+  Recall    ⭐    : 0.9998  (99.98%)
+  F1 Score        : 0.9999  (99.99%)
+  ROC AUC         : 1.0
+  Training time   : 16.50 seconds
+
+──────────────────────────────────────────────────────────────
+  OVERFITTING CHECK
+──────────────────────────────────────────────────────────────
+  Train accuracy  : 1.0000
+  Test  accuracy  : 0.9999
+  Gap             : 0.0001
+  Overfitting     : NO ✅
+
+──────────────────────────────────────────────────────────────
+  CONFUSION MATRIX
+──────────────────────────────────────────────────────────────
+
+                   Predicted
+                   BENIGN     ATTACK
+  Actual BENIGN     19,018          1
+  Actual ATTACK          5     25,599
+
+  TP (attacks caught)   : 25,599
+  TN (benign correct)   : 19,018
+  FP (false alarms)     : 1
+  FN (missed attacks)   : 5  ← most critical !
+
+  Miss rate (FN/attacks): 0.02%
+  False alarm rate      : 0.01%
+  Total attacks in test : 25,604
+  Total benign in test  : 19,019
+
+──────────────────────────────────────────────────────────────
+  CLASSIFICATION REPORT
+──────────────────────────────────────────────────────────────
+              precision    recall  f1-score   support
+
+      BENIGN     0.9997    0.9999    0.9998     19019
+      ATTACK     1.0000    0.9998    0.9999     25604
+
+    accuracy                         0.9999     44623
+   macro avg     0.9998    0.9999    0.9999     44623
+weighted avg     0.9999    0.9999    0.9999     44623
+
+──────────────────────────────────────────────────────────────
+  TOP 10 FEATURE IMPORTANCE
+──────────────────────────────────────────────────────────────
+    Fwd Packet Length Mean                        0.703817
+  Total Length of Fwd Packets                   0.270640
+  Fwd Packet Length Max                         0.007847
+  Bwd Header Length                             0.003447
+  Bwd Packet Length Mean                        0.001920
+  Fwd IAT Std                                   0.001277
+  Bwd IAT Total                                 0.001048
+  Destination Port                              0.000963
+  Bwd Packet Length Std                         0.000874
+  Idle Min                                      0.000805
+
+══════════════════════════════════════════════════════════════
