@@ -4,55 +4,52 @@
 ║  TRAINING REPORT                                             ║
 ╚══════════════════════════════════════════════════════════════╝
 
-  Run ID          : Friday-WorkingHours-Morning__xgboost__v1
-  Date            : 2026-05-09 00:04:51
-  Model           : XGBoost
-  Dataset         : Friday-WorkingHours-Morning
+  Run ID          : Friday-WorkingHours-Afternoon-DDos__decision_tree__v1
+  Date            : 2026-05-02 13:17:28
+  Model           : Decision Tree
+  Dataset         : Friday-WorkingHours-Afternoon-DDos
   Version         : v1
 
 ──────────────────────────────────────────────────────────────
   PARAMETERS
 ──────────────────────────────────────────────────────────────
 {
-    "dataset_name": "Friday-WorkingHours-Morning.pcap_ISCX",
+    "dataset_name": "Friday-WorkingHours-Afternoon-DDos.pcap_ISCX",
     "test_size": 0.2,
     "random_state": 42,
-    "xgb_n_estimators": 34,
-    "xgb_max_depth": 12,
-    "xgb_learning_rate": 0.1,
-    "xgb_alpha": 1.0,
-    "xgb_gamma": 0.2,
-    "xgb_subsample": 1.0,
-    "xgb_reg_lambda": 1.0
+    "dt_max_depth": 15,
+    "dt_class_weight": "balanced",
+    "dt_min_samples_split": 2,
+    "dt_min_samples_leaf": 1
 }
 
 ──────────────────────────────────────────────────────────────
   DATASET SUMMARY
 ──────────────────────────────────────────────────────────────
-  Total rows      : 191,033
+  Total rows      : 225,745
   Total columns   : 79
   Features (ML)   : 69
-  Train rows      : 152,826
-  Test rows       : 38,207
-  BENIGN          : 189,067
-  ATTACK          : 1,966
+  Train rows      : 180,596
+  Test rows       : 45,149
+  BENIGN          : 97,718
+  ATTACK          : 128,027
 
 ──────────────────────────────────────────────────────────────
   PERFORMANCE METRICS
 ──────────────────────────────────────────────────────────────
-  Accuracy        : 0.9993   (99.93%)
-  Precision       : 0.9422   (94.22%)
-  Recall          : 0.9949   (99.49%)   [*PRIORITAIRE*]
-  F1 Score        : 0.9678   (96.78%)
+  Accuracy        : 1.0000   (100.00%)
+  Precision       : 1.0000   (100.00%)
+  Recall          : 1.0000   (100.00%)   [*PRIORITAIRE*]
+  F1 Score        : 1.0000   (100.00%)
   ROC AUC         : 1.0
-  Training time   : 2.94 secondes
+  Training time   : 3.76 secondes
 
 ──────────────────────────────────────────────────────────────
   OVERFITTING
 ──────────────────────────────────────────────────────────────
-  Train accuracy  : 0.9997
-  Test accuracy   : 0.9993
-  Gap             : 0.0004
+  Train accuracy  : 1.0000
+  Test accuracy   : 1.0000
+  Gap             : 0.0000
   Overfitting     : NON — modele generalise bien
 
 ──────────────────────────────────────────────────────────────
@@ -61,44 +58,44 @@
 
                    Predicted
                    BENIGN        ATTACK
-  Actual BENIGN       37,790            24
-  Actual ATTACK            2           391
+  Actual BENIGN       19,543             1
+  Actual ATTACK            1        25,604
 
-  TP — Attaques détectées     : 391
-  TN — Bénin correct          : 37,790
-  FP — Fausses alarmes        : 24
-  FN — Attaques manquées      : 2   [!!! CRITIQUE !!!]
+  TP — Attaques détectées     : 25,604
+  TN — Bénin correct          : 19,543
+  FP — Fausses alarmes        : 1
+  FN — Attaques manquées      : 1   [!!! CRITIQUE !!!]
 
-  Miss rate   (FN / attaques) : 0.51%
-  Fausse alarme (FP / bénin)  : 0.06%
-  Total attaques (test)       : 393
-  Total bénin (test)          : 37,814
+  Miss rate   (FN / attaques) : 0.00%
+  Fausse alarme (FP / bénin)  : 0.01%
+  Total attaques (test)       : 25,605
+  Total bénin (test)          : 19,544
 
 ──────────────────────────────────────────────────────────────
   CLASSIFICATION REPORT
 ──────────────────────────────────────────────────────────────
               precision    recall  f1-score   support
 
-      BENIGN     0.9999    0.9994    0.9997     37814
-      ATTACK     0.9422    0.9949    0.9678       393
+      BENIGN     0.9999    0.9999    0.9999     19544
+      ATTACK     1.0000    1.0000    1.0000     25605
 
-    accuracy                         0.9993     38207
-   macro avg     0.9711    0.9971    0.9837     38207
-weighted avg     0.9994    0.9993    0.9993     38207
+    accuracy                         1.0000     45149
+   macro avg     1.0000    1.0000    1.0000     45149
+weighted avg     1.0000    1.0000    1.0000     45149
 
 ──────────────────────────────────────────────────────────────
   TOP 10 FEATURE IMPORTANCE
 ──────────────────────────────────────────────────────────────
-  Destination Port                              0.583609
-  Bwd Packet Length Mean                        0.301589
-  Init_Win_bytes_forward                        0.024293
-  Fwd PSH Flags                                 0.020705
-  Flow IAT Std                                  0.014716
-  min_seg_size_forward                          0.007805
-  Down/Up Ratio                                 0.007700
-  URG Flag Count                                0.006901
-  Init_Win_bytes_backward                       0.005930
-  Fwd Packets/s                                 0.003591
+  Fwd Packet Length Max                         0.542452
+  Subflow Fwd Bytes                             0.451164
+  Init_Win_bytes_forward                        0.002347
+  Destination Port                              0.001057
+  Bwd Packet Length Mean                        0.000781
+  Init_Win_bytes_backward                       0.000550
+  Subflow Fwd Packets                           0.000287
+  FIN Flag Count                                0.000261
+  Fwd IAT Min                                   0.000244
+  Total Length of Fwd Packets                   0.000241
 
 ──────────────────────────────────────────────────────────────
   RECOMMANDATIONS
@@ -109,5 +106,5 @@ weighted avg     0.9994    0.9993    0.9993     38207
 
 ══════════════════════════════════════════════════════════════
   Genere par NTD v2.0 — CIC-IDS2017
-  2026-05-09 00:04:51
+  2026-05-02 13:17:28
 ══════════════════════════════════════════════════════════════

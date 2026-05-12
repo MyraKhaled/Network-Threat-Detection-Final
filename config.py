@@ -1,9 +1,3 @@
-# ══════════════════════════════════════════════════════════════
-#   config.py — ALL PARAMETERS CENTRALIZED
-#   Network Threat Detection — CICIDS 2017
-#   Based on Kaggle Section 3 + NVIDIA DLI Lab1
-# ══════════════════════════════════════════════════════════════
-
 # ────────────────────────────────────────
 #   DATA
 # ────────────────────────────────────────
@@ -55,22 +49,18 @@ XGB_N_JOBS        = -1
 
 # ────────────────────────────────────────
 #   ISOLATION FOREST — unsupervised
-# ────────────────────────────────────────
 ISO_N_ESTIMATORS  = 200
 ISO_CONTAMINATION = 0.17
 ISO_N_JOBS        = -1
 
-# ────────────────────────────────────────
+
 #   PATHS
-# ────────────────────────────────────────
 OUTPUT_PATH  = "results/"
 MODELS_PATH  = "models/"
 REPORTS_PATH = "results/"
 PLOTS_PATH   = "results/plots/"
 
-# ────────────────────────────────────────
 #   MLFLOW
-# ────────────────────────────────────────
 EXPERIMENT_NAME = "Network-Threat-Detection"
 MLFLOW_TRACKING = "./mlruns"
 

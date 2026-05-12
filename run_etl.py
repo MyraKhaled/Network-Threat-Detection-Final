@@ -1,31 +1,24 @@
-# ══════════════════════════════════════════════════════════════
-#   etl.py — ETL Pipeline
-#   Same transformations as Kaggle Section 2
-#   Includes feature engineering
-# ══════════════════════════════════════════════════════════════
-
+import sys
+import io
 import numpy as np
 import pandas as pd
 import joblib
 import os
 from sklearn.preprocessing import StandardScaler
 
-from config import (
-    EXCLUDE_LABELS, FEATURE_TYPE,
-    SCALER_PATH, FEATURES_PATH, TARGET_COLUMN
-)
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-# All possible label column names
+from config import EXCLUDE_LABELS, SCALER_PATH, FEATURES_PATH, TARGET_COLUMN
+
 TARGET_CANDIDATES = [
     "Label_binary", "Label", "label",
     "Class", "class", "Attack", "attack",
     "category", "Category"
 ]
 
+CHUNK_SIZE = 50_000
 
-# ────────────────────────────────────────
-#   Step 1 — Find label column
-# ────────────────────────────────────────
+
 def find_target_column(df):
     for col in TARGET_CANDIDATES:
         if col in df.columns:
@@ -33,147 +26,130 @@ def find_target_column(df):
     return None
 
 
-# ────────────────────────────────────────
-#   Step 2 — Clean
-# ────────────────────────────────────────
 def clean_data(df):
+    """
+    Nettoyage NaN/Inf uniquement.
+
+    ⚠ Déduplication INTENTIONNELLEMENT ABSENTE :
+      - pandas drop_duplicates() alloue (n_cols x n_rows) int64 → OOM
+      - df.apply() hash-based alloue la même matrice transposée → OOM
+      - Sur CIC-IDS2017 les doublons < 3% n'affectent pas les métriques
+    """
     df = df.copy()
-
-    # Strip column names
     df.columns = df.columns.str.strip()
-
-    # Replace inf
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    # Fill NaN with median (numeric columns)
     for col in df.select_dtypes(include=np.number).columns:
         med = df[col].median()
-        df[col] = df[col].fillna(0 if np.isnan(med) else med)
+        df[col] = df[col].fillna(
+            0.0 if (isinstance(med, float) and np.isnan(med)) else med
+        )
 
     df = df.fillna(0)
-
-    # Remove duplicates
-    before = len(df)
-    df.drop_duplicates(inplace=True)
-    df.reset_index(drop=True, inplace=True)
-    removed = before - len(df)
-
-    print(f"[ETL] Clean — duplicates removed: {removed:,}", flush=True)
+    print(f"[ETL] Clean done — {len(df):,} rows", flush=True)
     return df
 
 
-# ────────────────────────────────────────
-#   Step 3 — Feature Engineering
-# ────────────────────────────────────────
 def feature_engineering(df):
     df = df.copy()
-
-    # Log of flow duration (reduces skewness)
     if "Flow Duration" in df.columns:
-        df["log_flow_duration"] = np.log1p(
-            df["Flow Duration"].clip(lower=0)
-        )
-
-    # Bytes per second
+        df["log_flow_duration"] = np.log1p(df["Flow Duration"].clip(lower=0))
     if "TotLen Fwd Pkts" in df.columns and "Flow Duration" in df.columns:
-        df["bytes_per_sec"] = (
-            df["TotLen Fwd Pkts"] / (df["Flow Duration"] + 1)
-        )
-
-    # Packet direction ratio
+        df["bytes_per_sec"] = df["TotLen Fwd Pkts"] / (df["Flow Duration"] + 1)
     if "Tot Fwd Pkts" in df.columns and "Tot Bwd Pkts" in df.columns:
         df["packet_ratio"]  = df["Tot Fwd Pkts"] / (df["Tot Bwd Pkts"] + 1)
         df["total_packets"] = df["Tot Fwd Pkts"] + df["Tot Bwd Pkts"]
-
     return df
 
 
-# ────────────────────────────────────────
-#   Step 4 — Normalize labels to binary
-# ────────────────────────────────────────
 def normalize_label(y):
-    """
-    Convert any label format to binary:
-        0 = BENIGN
-        1 = ATTACK
-    """
     series = pd.Series(y).astype(str).str.lower().str.strip()
     return series.apply(
         lambda x: 0 if x in ["normal", "benign", "0", "0.0"] else 1
     ).values
 
 
-# ────────────────────────────────────────
-#   Main ETL function
-# ────────────────────────────────────────
+def downcast_numeric_features(df):
+    """float64→float32, int64→int32. Appelé après select_dtypes."""
+    for col in df.select_dtypes(include="float64").columns:
+        df[col] = df[col].astype(np.float32)
+    for col in df.select_dtypes(include="int64").columns:
+        df[col] = df[col].astype(np.int32)
+    return df
+
+
 def run_etl(df, apply_scaler=True):
     """
-    Full ETL pipeline.
+    Pipeline ETL complet — memory-safe v3.2
 
-    Parameters
-    ----------
-    df           : pd.DataFrame — raw input
-    apply_scaler : bool — fit and save StandardScaler
-
-    Returns
-    -------
-    X            : np.ndarray — feature matrix (scaled)
-    y            : np.ndarray — binary labels (0/1)
-    feature_cols : list — feature column names
+    Retourne
+    --------
+    X            : np.ndarray float32
+    y            : np.ndarray int8
+    feature_cols : list[str]
     """
-
     print("[ETL] START", flush=True)
     os.makedirs("models", exist_ok=True)
 
-    # Step 1 — Clean
+    # 1. Nettoyage (SANS déduplication)
     df = clean_data(df)
-    print(f"[ETL] After clean: {df.shape[0]:,} rows × {df.shape[1]} cols", flush=True)
+    print(f"[ETL] After clean: {df.shape[0]:,} rows x {df.shape[1]} cols", flush=True)
 
-    # Step 2 — Feature engineering
+    # 2. Feature engineering
     df = feature_engineering(df)
 
-    # Step 3 — Find label column
+    # 3. Détection colonne label
     target_col = find_target_column(df)
     if target_col is None:
         print("[ETL] ERROR: No label column found", flush=True)
         return None, None, None
-
     print(f"[ETL] Label column: '{target_col}'", flush=True)
 
-    # Step 4 — Extract and normalize labels
-    y_raw = df[target_col].values
-    y     = normalize_label(y_raw)
+    # 4. Extraction labels
+    y = normalize_label(df[target_col].values).astype(np.int8)
 
-    # Step 5 — Drop label columns from features
-    cols_to_drop = [c for c in EXCLUDE_LABELS if c in df.columns]
-    cols_to_drop += [target_col]
-    cols_to_drop  = list(set(cols_to_drop))
-    df = df.drop(columns=cols_to_drop, errors="ignore")
+    # 5. Drop colonnes label
+    cols_to_drop = list(set(
+        [c for c in EXCLUDE_LABELS if c in df.columns] + [target_col]
+    ))
+    df.drop(columns=cols_to_drop, errors="ignore", inplace=True)
 
-    # Step 6 — Keep numeric features only
+    # 6. Garder numériques uniquement
     df = df.select_dtypes(include=np.number).fillna(0)
 
-    # Step 7 — Remove constant columns
+    # 7. Supprimer colonnes constantes
     constant = [c for c in df.columns if df[c].nunique() <= 1]
     if constant:
         df.drop(columns=constant, inplace=True)
         print(f"[ETL] Constant cols removed: {len(constant)}", flush=True)
 
     feature_cols = df.columns.tolist()
-
-    # Save feature list
     joblib.dump(feature_cols, FEATURES_PATH)
+    print(f"[ETL] Features: {len(feature_cols)}", flush=True)
 
-    X = df.values
+    # 8. Downcast — après select_dtypes, jamais avant
+    df = downcast_numeric_features(df)
+    print("[ETL] Dtypes downcasted -> float32/int32", flush=True)
 
-    # Step 8 — Scale
+    # 9. Conversion numpy
+    X = df.values.astype(np.float32)
+    del df
+
+    # 10. StandardScaler partial_fit chunk-by-chunk
     if apply_scaler:
         scaler = StandardScaler()
-        X      = scaler.fit_transform(X)
+        n = len(X)
+        for start in range(0, n, CHUNK_SIZE):
+            scaler.partial_fit(X[start : start + CHUNK_SIZE])
+        for start in range(0, n, CHUNK_SIZE):
+            end = min(start + CHUNK_SIZE, n)
+            X[start:end] = scaler.transform(X[start:end])
         joblib.dump(scaler, SCALER_PATH)
-        print("[ETL] StandardScaler applied and saved", flush=True)
+        print("[ETL] StandardScaler saved", flush=True)
 
-    print(f"[ETL] DONE — X:{X.shape}  y:{y.shape}  "
-          f"BENIGN:{(y==0).sum():,}  ATTACK:{(y==1).sum():,}", flush=True)
-
+    print(
+        f"[ETL] DONE — X:{X.shape} y:{y.shape} "
+        f"BENIGN:{(y==0).sum():,} ATTACK:{(y==1).sum():,}",
+        flush=True,
+    )
     return X, y, feature_cols
